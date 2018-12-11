@@ -24,9 +24,9 @@ var TryCheckReboot = `shutdown /r /f /t 60 /c "packer restart test"`
 var AbortReboot = `shutdown /a`
 
 var DefaultRegistryKeys = []string{
-	`HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending`,
-	`HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending`,
-	`HKLM:Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress`,
+	"HKLM:SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\RebootPending",
+	"HKLM:SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\PackagesPending",
+	"HKLM:Software\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\RebootInProgress",
 }
 
 type Config struct {
@@ -42,7 +42,7 @@ type Config struct {
 	// The timeout for waiting for the machine to restart
 	RestartTimeout time.Duration `mapstructure:"restart_timeout"`
 
-	// Whether to check the registry (see KeyTestCommand) for pending reboots
+	// Whether to check the registry (see RegistryKeys) for pending reboots
 	CheckKey bool `mapstructure:"check_registry"`
 
 	// custom keys to check for
@@ -254,7 +254,7 @@ var waitForCommunicator = func(p *Provisioner) error {
 			log.Printf("Connected to machine")
 			shouldContinue := false
 			for _, RegKey := range p.config.RegistryKeys {
-				KeyTestCommand = winrm.Powershell(`Test-Path "%s"`, RegKey)
+				KeyTestCommand := winrm.Powershell(fmt.Sprintf(`Test-Path "%s"`, RegKey))
 				cmdKeyCheck := &packer.RemoteCmd{Command: KeyTestCommand}
 				log.Printf("Checking registry for pending reboots")
 				var buf, buf2 bytes.Buffer
