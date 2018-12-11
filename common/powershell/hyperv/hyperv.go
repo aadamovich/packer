@@ -3,7 +3,6 @@ package hyperv
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
