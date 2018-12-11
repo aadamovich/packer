@@ -23,11 +23,10 @@ var retryableSleep = 5 * time.Second
 var TryCheckReboot = `shutdown /r /f /t 60 /c "packer restart test"`
 var AbortReboot = `shutdown /a`
 
-var KeyTestCommands = []string{
-	winrm.Powershell(`Test-Path "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"`),
-	winrm.Powershell(`Test-Path "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending"`),
-	winrm.Powershell(`Test-Path "HKLM:Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress"`),
-	winrm.Powershell(`Test-Path "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending"`),
+var DefaultRegistryKeys = []string{
+	`HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending`,
+	`HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending`,
+	`HKLM:Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress`,
 }
 
 type Config struct {
@@ -45,6 +44,9 @@ type Config struct {
 
 	// Whether to check the registry (see KeyTestCommand) for pending reboots
 	CheckKey bool `mapstructure:"check_registry"`
+
+	// custom keys to check for
+	RegistryKeys []string `mapstructure:"registry_keys`
 
 	ctx interpolate.Context
 }
@@ -81,6 +83,10 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 
 	if p.config.RestartTimeout == 0 {
 		p.config.RestartTimeout = 5 * time.Minute
+	}
+
+	if len(p.config.RegistryKeys) == 0 {
+		p.config.RegistryKeys = DefaultRegistryKeys
 	}
 
 	return nil
@@ -247,7 +253,8 @@ var waitForCommunicator = func(p *Provisioner) error {
 		if p.config.CheckKey {
 			log.Printf("Connected to machine")
 			shouldContinue := false
-			for _, KeyTestCommand := range KeyTestCommands {
+			for _, RegKey := range p.config.RegistryKeys {
+				KeyTestCommand = winrm.Powershell(`Test-Path "%s"`, RegKey)
 				cmdKeyCheck := &packer.RemoteCmd{Command: KeyTestCommand}
 				log.Printf("Checking registry for pending reboots")
 				var buf, buf2 bytes.Buffer
