@@ -3,6 +3,7 @@ package hyperv
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -415,9 +416,13 @@ if ($vm) {
     $result = Hyper-V\Rename-VM -VM $vm -NewName $VMName
 }
 	`
+	copyString := "0"
+	if copyTF == true {
+		copyString = "1"
+	}
 
 	var ps powershell.PowerShellCmd
-	err := ps.Run(script, importPath, vmName, harddrivePath, strconv.FormatInt(ram, 10), switchName, strconv.FormatBool(copyTF))
+	err := ps.Run(script, importPath, vmName, harddrivePath, strconv.FormatInt(ram, 10), switchName, copyString)
 
 	return err
 }
